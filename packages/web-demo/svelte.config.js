@@ -10,6 +10,11 @@ const config = {
       precompress: false,
       strict: true,
     }),
+    // Set base path for GitHub Pages deployment.
+    // Defaults to "" for local dev; override via env in CI.
+    paths: {
+      base: process.env.BASE_PATH || "",
+    },
   },
 };
 

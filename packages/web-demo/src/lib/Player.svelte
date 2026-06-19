@@ -11,6 +11,12 @@
   let scriptsLoaded = $state(false);
   let loadError = $state<string | null>(null);
 
+  // Resolve static asset paths relative to the app's base URL
+  function asset(path: string): string {
+    const base = (import.meta as any).env?.BASE_URL || "/";
+    return base.replace(/\/+$/, "") + path;
+  }
+
   // ── Load Quixe/GlkOte scripts on mount ────────────────────────────────
 
   onMount(async () => {
@@ -46,7 +52,7 @@
       gameportEl.innerHTML = `
         <div id="windowport"></div>
         <div id="loadingpane">
-          <img src="interpreter/waiting.gif" alt="LOADING"><br>
+          <img src="{asset("/interpreter/waiting.gif")}" alt="LOADING"><br>
           <em>&nbsp;&nbsp;&nbsp;Loading...</em>
         </div>
         <div id="errorpane" style="display:none;"><div id="errorcontent">...</div></div>
@@ -75,8 +81,8 @@
   async function loadScripts(): Promise<void> {
     // Load GlkOte stylesheets first
     const stylesheets = [
-      "interpreter/glkote.css",
-      "interpreter/dialog.css",
+      asset("/interpreter/glkote.css"),
+      asset("/interpreter/dialog.css"),
     ];
     for (const href of stylesheets) {
       loadStylesheet(href);
@@ -86,9 +92,9 @@
     injectGlkOteDarkTheme();
 
     const scripts = [
-      "interpreter/jquery-1.12.4.min.js",
-      "interpreter/glkote.min.js",
-      "interpreter/quixe.min.js",
+      asset("/interpreter/jquery-1.12.4.min.js"),
+      asset("/interpreter/glkote.min.js"),
+      asset("/interpreter/quixe.min.js"),
     ];
 
     for (const src of scripts) {

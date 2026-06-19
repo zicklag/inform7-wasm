@@ -1,0 +1,81 @@
+name: Deploy web demo to GitHub Pages
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "packages/web-demo/**"
+      - "packages/inform7-wasm/**"
+      - ".github/workflows/deploy-web-demo.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          # WASM binaries and internal.json.gz are pre-built and committed
+          # in packages/web-demo/static/, so no submodules needed
+          submodules: false
+          fetch-depth: 1
+
+      - name: Install pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: latest
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install
+
+      - name: Build inform7-wasm package (TypeScript only)
+        run: |
+          # Copy pre-built WASM files into place so the package's wasm/
+          # directory is populated (needed for the package to be complete)
+          mkdir -p packages/inform7-wasm/wasm
+          cp packages/web-demo/static/inform7.wasm packages/inform7-wasm/wasm/
+          cp packages/web-demo/static/inform6.wasm packages/inform7-wasm/wasm/
+          cp packages/web-demo/static/inblorb.wasm packages/inform7-wasm/wasm/
+          # Compile TypeScript (no asset preparation needed — those are
+          # pre-built and committed in web-demo/static/)
+          cd packages/inform7-wasm && pnpm build
+
+      - name: Build web demo
+        run: pnpm --filter web-demo build
+        env:
+          BASE_PATH: /inform7-wasm
+
+      - name: Setup Pages
+        uses: actions/configure-pages@v5
+
+      - name: Upload Pages artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: packages/web-demo/build
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-24.04
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4

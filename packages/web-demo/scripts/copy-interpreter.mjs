@@ -56,21 +56,21 @@ const INTERNAL_SRC = path.resolve(
   PACKAGE_ROOT,
   "..",
   "inform7-wasm",
-  "internal.json",
+  "internal.json.gz",
 );
 
 const INTERNAL_DEST = path.join(
   PACKAGE_ROOT,
   "static",
-  "inform7-internals.json",
+  "inform7-internals.json.gz",
 );
 
 if (fs.existsSync(INTERNAL_SRC)) {
   fs.copyFileSync(INTERNAL_SRC, INTERNAL_DEST);
   const size = (fs.statSync(INTERNAL_DEST).size / 1024 / 1024).toFixed(1);
-  console.log(`  ✓ inform7-internals.json (${size} MB)`);
+  console.log(`  ✓ inform7-internals.json.gz (${size} MB)`);
 } else {
-  console.warn(`  ⚠ internal.json not found at ${INTERNAL_SRC}`);
+  console.warn(`  ⚠ internal.json.gz not found at ${INTERNAL_SRC}`);
 }
 
 // ── 3. WASM binaries ────────────────────────────────────────────────────

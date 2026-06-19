@@ -3,14 +3,22 @@ import {
   loadInternalFromUrl,
 } from "inform7-wasm";
 
+// Resolve a static asset path relative to the app's base URL.
+// In dev (BASE_URL="/") this is a no-op; in production on GitHub Pages
+// (BASE_URL="/inform7-wasm/") it prepends the base path.
+function asset(path: string): string {
+  const base = import.meta.env.BASE_URL || "/";
+  return base.replace(/\/+$/, "") + path;
+}
+
 // Cache the virtual internal filesystem after first load
 let internalFs: Record<string, Uint8Array> | null = null;
 
 async function getInternalFs(): Promise<Record<string, Uint8Array>> {
   if (!internalFs) {
-    // Load from the static copy (uncompressed JSON to avoid gzip-on-gzip
-    // issues with Vite's dev server)
-    internalFs = await loadInternalFromUrl("/inform7-internals.json");
+    // Load from the static copy (gzipped JSON — the gzip-on-gzip issue
+    // was only with Vite's dev server; production serves .gz files as-is)
+    internalFs = await loadInternalFromUrl(asset("/inform7-internals.json.gz"));
   }
   return internalFs;
 }
@@ -19,7 +27,7 @@ async function getInternalFs(): Promise<Record<string, Uint8Array>> {
  * Fetch a WASM binary from a static URL and return it as a Uint8Array.
  */
 async function fetchWasm(path: string): Promise<Uint8Array> {
-  const response = await fetch(path);
+  const response = await fetch(asset(path));
   if (!response.ok) {
     throw new Error(
       `Failed to load WASM: ${path} (${response.status} ${response.statusText})`,
