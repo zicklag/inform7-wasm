@@ -1,13 +1,14 @@
 #!/usr/bin/env bash
 # build.sh — Reproducible WASM build of the Inform 7 toolchain
 #
-# Builds inform7.wasm, inform6.wasm, and inblorb.wasm as pure WASI modules.
+# Builds inform7.wasm, inform6.wasm, and inblorb.wasm as pure WASI modules,
+# plus the binary kit files (arch-*.interb) needed by inform7 at runtime.
 #
 # Prerequisites:
 #   - pixi (for clang, lld)
 #   - git
 #   - wget
-#   - C compiler (gcc or clang) for building native inweb
+#   - C compiler (gcc or clang) for building native tools
 #
 # Usage: pixi run build
 
@@ -32,7 +33,7 @@ COMPILER_RT="$RESOURCES/libclang_rt.builtins-wasm32-wasi-$WASI_SDK_VERSION"
 CUSTOM_INCLUDE="$SUPPORT/custom-include"
 WASI_STUBS_C="$SUPPORT/wasi-stubs.c"
 
-# Detect a working C compiler for building native inweb
+# Detect a working C compiler for building native tools
 if command -v gcc &>/dev/null; then
     NATIVE_CC="gcc"
 elif command -v clang &>/dev/null; then
@@ -57,7 +58,7 @@ echo ""
 # ============================================================
 # Step 1: Download WASI dependencies
 # ============================================================
-echo "--- Step 1/7: Downloading WASI dependencies ---"
+echo "--- Step 1/8: Downloading WASI dependencies ---"
 
 if [ ! -f "$WASI_SYSROOT/lib/wasm32-wasip1/crt1-command.o" ]; then
     echo "Downloading wasi-sysroot..."
@@ -85,7 +86,7 @@ fi
 # ============================================================
 # Step 2: Initialize and update submodules
 # ============================================================
-echo "--- Step 2/7: Initializing submodules ---"
+echo "--- Step 2/8: Initializing submodules ---"
 
 if [ ! -d "$SUB" ]; then
     echo "Error: submodules directory not found." >&2
@@ -99,7 +100,7 @@ echo "  Submodules ready"
 # ============================================================
 # Step 3: Apply patches
 # ============================================================
-echo "--- Step 3/7: Applying patches ---"
+echo "--- Step 3/8: Applying patches ---"
 
 apply_patch() {
     local repo="$1"
@@ -124,7 +125,7 @@ apply_patch "inform" "inform-wasi.patch" "v10.1.2"
 # ============================================================
 # Step 4: Build native inweb (needed to regenerate tangled files)
 # ============================================================
-echo "--- Step 4/7: Building native inweb ---"
+echo "--- Step 4/8: Building native inweb ---"
 
 INWEB_SRC="$SUB/inweb/Tangled/inweb.c"
 INWEB_BIN="$BUILD/inweb-native"
@@ -140,7 +141,7 @@ fi
 # ============================================================
 # Step 5: Regenerate tangled files
 # ============================================================
-echo "--- Step 5/7: Regenerating tangled files ---"
+echo "--- Step 5/8: Regenerating tangled files ---"
 
 cd "$SUB/inform"
 "$INWEB_BIN" inform7 -at "$SUB/inweb" -tangle
@@ -157,12 +158,18 @@ echo "  Standard Rules tangled"
     -tangle-to "inform7/Internal/Extensions/Graham Nelson/Basic Inform.i7x"
 echo "  Basic Inform tangled"
 
+# Tangle inbuild and inter (needed to build binary kits)
+"$INWEB_BIN" inbuild -at "$SUB/inweb" -tangle
+echo "  inbuild tangled"
+"$INWEB_BIN" inter -at "$SUB/inweb" -tangle
+echo "  inter tangled"
+
 cd "$SCRIPT_DIR"
 
 # ============================================================
 # Step 6: Compile WASM binaries
 # ============================================================
-echo "--- Step 6/7: Compiling WASM binaries ---"
+echo "--- Step 6/8: Compiling WASM binaries ---"
 
 CLANG=".pixi/envs/default/bin/clang"
 
@@ -240,7 +247,7 @@ rm -f "$BUILD/inform7.o"
 # ============================================================
 # Step 7: Copy Internal resources
 # ============================================================
-echo "--- Step 7/7: Copying Internal resources ---"
+echo "--- Step 7/8: Copying Internal resources ---"
 
 cp -r "$SUB/inform/inform7/Internal" "$BUILD/Internal"
 
@@ -251,6 +258,70 @@ cp "$SUB/inform/inform7/Tangled/Syntax.preform" "$BUILD/Internal/Languages/Engli
 cp "$BUILD/Internal/HTML/main.css" "$BUILD/Internal/HTML/linux-main.css"
 cp "$BUILD/Internal/HTML/platform.css" "$BUILD/Internal/HTML/linux-platform.css"
 
+# ============================================================
+# Step 8: Build binary kits (arch-*.interb files)
+# ============================================================
+echo "--- Step 8/8: Building binary kits ---"
+
+# The binary kits (arch-*.interb) are needed by inform7 at runtime.
+# Only EnglishLanguageKit has them pre-built in the submodule; the
+# other four kits must be compiled from source.
+#
+# We build inbuild and inter natively (not WASM) since they are
+# only build-time dependencies, then use inbuild to compile each kit.
+
+# Compile native inbuild
+INBUILD_BIN="$BUILD/inbuild-native"
+if [ ! -f "$INBUILD_BIN" ]; then
+    echo "  Compiling inbuild natively..."
+    $NATIVE_CC -DPLATFORM_LINUX -DPLATFORM_POSIX \
+        -I"$SUB/inweb/foundation-module" \
+        -I"$SUB/inweb/foundation-module/Chapter 2" \
+        -o "$INBUILD_BIN" "$SUB/inform/inbuild/Tangled/inbuild.c" -lm
+    echo "  inbuild built ($(du -h "$INBUILD_BIN" | cut -f1))"
+else
+    echo "  inbuild already built"
+fi
+
+# Compile native inter (called by inbuild to build kits)
+INTER_BIN="$BUILD/inter-native"
+INTER_DIR="$BUILD/inter-native-dir"
+if [ ! -f "$INTER_BIN" ]; then
+    echo "  Compiling inter natively..."
+    $NATIVE_CC -DPLATFORM_LINUX -DPLATFORM_POSIX \
+        -I"$SUB/inweb/foundation-module" \
+        -I"$SUB/inweb/foundation-module/Chapter 2" \
+        -o "$INTER_BIN" "$SUB/inform/inter/Tangled/inter.c" -lm
+    echo "  inter built ($(du -h "$INTER_BIN" | cut -f1))"
+else
+    echo "  inter already built"
+fi
+
+# Set up inter tool directory (needs Pipelines/ alongside it)
+mkdir -p "$INTER_DIR"
+cp "$INTER_BIN" "$INTER_DIR/inter"
+cp -r "$BUILD/Internal/Pipelines" "$INTER_DIR/Pipelines"
+
+# Build binary kits for all architectures
+echo "  Building binary kits (this may take a while)..."
+INFORM7_PATH="$BUILD/Internal" \
+    "$INBUILD_BIN" \
+    -internal "$BUILD/Internal" \
+    -tools "$INTER_DIR" \
+    -rebuild \
+    -contents-of "$BUILD/Internal/Inter" \
+    2>&1 | grep -v "^'"
+
+echo "  Binary kits built:"
+for kit in "$BUILD"/Internal/Inter/*/; do
+    name=$(basename "$kit")
+    count=$(ls "$kit"/arch-*.interb 2>/dev/null | wc -l)
+    echo "    $name: $count arch files"
+done
+
+# Clean up native build tools (not needed at runtime)
+rm -rf "$INTER_DIR"
+
 echo ""
 echo "=== Build complete ==="
 ls -lh "$BUILD/"*.wasm
@@ -260,3 +331,6 @@ echo "  inform7.wasm  — .ni -> .i6 compiler"
 echo "  inform6.wasm  — .i6 -> .ulx compiler"
 echo "  inblorb.wasm  — .ulx -> .gblorb packager"
 echo "  Internal/     — resource files (CSS, templates, languages, kits)"
+echo ""
+echo "To compile a story:"
+echo "  node examples/compile.mjs [project-dir]"

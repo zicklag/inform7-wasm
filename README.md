@@ -44,40 +44,31 @@ build/
 └── wasi-stubs.o       # POSIX stubs (pthread, system, clock)
 ```
 
-### Compile a Story
+### Compile a Story (Node.js — recommended)
 
-You'll need a WASI runtime. [wasmtime](https://wasmtime.dev/) is recommended:
+If you have Node.js 20+ installed, use the included script:
 
 ```bash
-# Step 1: Compile source to I6
-wasmtime run \
-  --dir /path/to/My\ Project \
-  --dir build/Internal::/inform7/Internal \
-  --env INFORM7_PATH=/inform7/Internal \
-  build/inform7.wasm \
-  -project /path/to/My\ Project \
-  -internal /inform7/Internal \
-  -format=inform6
+# Compile the example story
+node examples/compile.mjs
 
-# Step 2: Compile I6 to Glulx
-wasmtime run \
-  --dir /path/to/My\ Project \
-  build/inform6.wasm \
-  -E2SwG "/path/to/My Project/Build/auto.inf" \
-         "/path/to/My Project/Build/output.ulx"
-
-# Step 3: Package to blorb
-cp "/path/to/My Project/Build/output.ulx" \
-   "/path/to/My Project/Build/output.ulx"
-wasmtime run \
-  --dir /path/to/My\ Project \
-  --dir build/Internal::/inform7/Internal \
-  --env INFORM7_PATH=/inform7/Internal \
-  build/inblorb.wasm \
-  -project "/path/to/My Project"
+# Compile your own project
+node examples/compile.mjs /path/to/My\ Project
 ```
 
-Or use the `assets/compile.sh` script from the [assets directory](./assets/) for a one-step compilation.
+The script handles all three steps automatically and works on any platform with Node.js.
+
+### Compile a Story (wasmtime)
+
+If you prefer [wasmtime](https://wasmtime.dev/), use the included script:
+
+```bash
+# Compile the example story
+bash examples/compile-wasmtime.sh
+
+# Compile your own project
+bash examples/compile-wasmtime.sh /path/to/My\ Project
+```
 
 ### Project Structure
 
@@ -150,6 +141,12 @@ Both are downloaded from the [wasi-sdk releases](https://github.com/WebAssembly/
 ### Runtime
 
 - Any WASI Preview 1 runtime (wasmtime, wasmer, Node.js 20+ with `--experimental-wasi-unstable-preview1`)
+
+## What's New
+
+- **Node.js compile script** — `examples/compile.mjs` compiles any Inform 7 project using Node.js built-in WASI (no wasmtime needed)
+- **Example story** — `examples/hello/` contains a minimal "Hello World" story ready to compile
+- **Binary kits** — All five Inter kits are now built during compilation, not just EnglishLanguageKit
 
 ## Upcoming
 
