@@ -1,0 +1,9 @@
+[submodule "submodules/inform"]
+	path = submodules/inform
+	url = https://github.com/ganelson/inform.git
+[submodule "submodules/inweb"]
+	path = submodules/inweb
+	url = https://github.com/ganelson/inweb.git
+[submodule "submodules/intest"]
+	path = submodules/intest
+	url = https://github.com/ganelson/intest.git
