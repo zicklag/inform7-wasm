@@ -1,0 +1,16 @@
+{
+  "name": "inform7-wasm-monorepo",
+  "private": true,
+  "version": "0.1.0",
+  "description": "Inform 7 toolchain as WASM modules — monorepo",
+  "scripts": {
+    "build": "pnpm -r build",
+    "build:wasm": "bash build.sh",
+    "build:package": "cd packages/inform7-wasm && pnpm prepare-assets && pnpm build",
+    "build:all": "pnpm build:wasm && pnpm build:package",
+    "clean": "pnpm -r clean"
+  },
+  "engines": {
+    "node": ">=20"
+  }
+}

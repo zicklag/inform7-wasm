@@ -6,3 +6,5 @@
 
 # Pixi environment
 .pixi/
+
+node_modules
