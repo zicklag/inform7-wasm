@@ -1,0 +1,25 @@
+From 59fa964622b6f8228fb120e6dee168acd5f779f4 Mon Sep 17 00:00:00 2001
+From: Zicklag <zicklag@katharostech.com>
+Date: Fri, 19 Jun 2026 10:49:33 -0500
+Subject: [PATCH] fix: update to return ints
+
+---
+ foundation-module/Chapter 2/Methods.w | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/foundation-module/Chapter 2/Methods.w b/foundation-module/Chapter 2/Methods.w
+index 4ce92d50..907c5275 100644
+--- a/foundation-module/Chapter 2/Methods.w	
++++ b/foundation-module/Chapter 2/Methods.w	
+@@ -52,7 +52,7 @@ functions sharing the method ID |X|.
+ @d INT_METHOD_TYPE(id, args...)
+ 	typedef int (*id##_type)(args);
+ @d VOID_METHOD_TYPE(id, args...)
+-	typedef void (*id##_type)(args);
++	typedef int (*id##_type)(args);
+ 
+ =
+ INT_METHOD_TYPE(UNUSED_METHOD_ID_MTID, text_stream *example, int wont_be_used)
+-- 
+2.34.1
+

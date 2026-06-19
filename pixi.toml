@@ -1,0 +1,14 @@
+[project]
+name = "inform7-wasm"
+version = "0.1.0"
+description = "Reproducible WASM build of the Inform 7 toolchain"
+channels = ["conda-forge"]
+platforms = ["linux-64"]
+
+[tasks]
+build = { cmd = "bash build.sh", description = "Build all WASM binaries" }
+clean = { cmd = "rm -rf build resources", description = "Remove build artifacts" }
+
+[dependencies]
+clang = ">=22.1.8,<23"
+lld = ">=22.1.8,<23"

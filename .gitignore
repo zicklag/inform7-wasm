@@ -1,0 +1,8 @@
+# Dependencies downloaded during build
+/resources/
+
+# Build output
+/build/
+
+# Pixi environment
+.pixi/
