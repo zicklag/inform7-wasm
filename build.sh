@@ -18,6 +18,7 @@ cd "$SCRIPT_DIR"
 
 # Versions
 WASI_SDK_VERSION="24.0"
+WASI_SDK_TAG="24"
 
 # Paths
 RESOURCES="$SCRIPT_DIR/resources"
@@ -42,6 +43,14 @@ fi
 
 mkdir -p "$RESOURCES" "$BUILD"
 
+# Ensure compiler-rt builtins are findable by clang
+CLANG_RESOURCE_DIR=".pixi/envs/default/lib/clang/22/lib/wasm32-unknown-wasip1"
+mkdir -p "$CLANG_RESOURCE_DIR"
+if [ ! -f "$CLANG_RESOURCE_DIR/libclang_rt.builtins.a" ]; then
+    ln -sf "$COMPILER_RT/libclang_rt.builtins-wasm32.a" \
+        "$CLANG_RESOURCE_DIR/libclang_rt.builtins.a"
+fi
+
 echo "=== Inform 7 WASM Build ==="
 echo ""
 
@@ -52,8 +61,9 @@ echo "--- Step 1/7: Downloading WASI dependencies ---"
 
 if [ ! -f "$WASI_SYSROOT/lib/wasm32-wasip1/crt1-command.o" ]; then
     echo "Downloading wasi-sysroot..."
-    SYSROOT_URL="https://github.com/WebAssembly/wasi-sdk/releases/download/wasi-sdk-$WASI_SDK_VERSION/libwasi-sysroot-$WASI_SDK_VERSION.tar.gz"
-    wget -q "$SYSROOT_URL" -O /tmp/wasi-sysroot.tar.gz
+    SYSROOT_URL="https://github.com/WebAssembly/wasi-sdk/releases/download/wasi-sdk-$WASI_SDK_TAG/wasi-sysroot-$WASI_SDK_VERSION.tar.gz"
+    echo "  URL: $SYSROOT_URL"
+    wget --no-netrc --no-hsts -q "$SYSROOT_URL" -O /tmp/wasi-sysroot.tar.gz 2>&1
     tar xzf /tmp/wasi-sysroot.tar.gz -C "$RESOURCES"
     rm /tmp/wasi-sysroot.tar.gz
     echo "  -> $(du -sh "$WASI_SYSROOT" | cut -f1)"
@@ -63,8 +73,8 @@ fi
 
 if [ ! -f "$COMPILER_RT/libclang_rt.builtins-wasm32.a" ]; then
     echo "Downloading compiler-rt builtins..."
-    CRT_URL="https://github.com/WebAssembly/wasi-sdk/releases/download/wasi-sdk-$WASI_SDK_VERSION/libclang_rt.builtins-wasm32-wasi-$WASI_SDK_VERSION.tar.gz"
-    wget -q "$CRT_URL" -O /tmp/compiler-rt.tar.gz
+    CRT_URL="https://github.com/WebAssembly/wasi-sdk/releases/download/wasi-sdk-$WASI_SDK_TAG/libclang_rt.builtins-wasm32-wasi-$WASI_SDK_VERSION.tar.gz"
+    wget --no-netrc --no-hsts -q "$CRT_URL" -O /tmp/compiler-rt.tar.gz
     tar xzf /tmp/compiler-rt.tar.gz -C "$RESOURCES"
     rm /tmp/compiler-rt.tar.gz
     echo "  -> $(du -sh "$COMPILER_RT" | cut -f1)"
@@ -121,7 +131,7 @@ INWEB_BIN="$BUILD/inweb-native"
 
 if [ ! -f "$INWEB_BIN" ]; then
     echo "  Compiling inweb with $NATIVE_CC..."
-    $NATIVE_CC -o "$INWEB_BIN" "$INWEB_SRC" -lm
+    $NATIVE_CC -DPLATFORM_LINUX -DPLATFORM_POSIX -o "$INWEB_BIN" "$INWEB_SRC" -lm
     echo "  inweb built ($(du -h "$INWEB_BIN" | cut -f1))"
 else
     echo "  inweb already built"
@@ -133,8 +143,20 @@ fi
 echo "--- Step 5/7: Regenerating tangled files ---"
 
 cd "$SUB/inform"
-"$INWEB_BIN" inform/inform7 -import-from modules -tangle
-echo "  inform7 tangled file regenerated"
+"$INWEB_BIN" inform7 -at "$SUB/inweb" -tangle
+echo "  inform7 tangled"
+"$INWEB_BIN" inblorb -at "$SUB/inweb" -tangle
+echo "  inblorb tangled"
+
+# Tangle extensions (Standard Rules, Basic Inform)
+mkdir -p "inform7/Internal/Extensions/Graham Nelson"
+"$INWEB_BIN" inform7/extensions/standard_rules -at "$SUB/inweb" \
+    -tangle-to "inform7/Internal/Extensions/Graham Nelson/Standard Rules.i7x"
+echo "  Standard Rules tangled"
+"$INWEB_BIN" inform7/extensions/basic_inform -at "$SUB/inweb" \
+    -tangle-to "inform7/Internal/Extensions/Graham Nelson/Basic Inform.i7x"
+echo "  Basic Inform tangled"
+
 cd "$SCRIPT_DIR"
 
 # ============================================================
@@ -208,6 +230,7 @@ $CLANG "${WASI_FLAGS[@]}" \
     -Wl,--max-memory=2147483648 \
     "$BUILD/inform7.o" \
     "$BUILD/wasi-stubs.o" \
+    "$COMPILER_RT/libclang_rt.builtins-wasm32.a" \
     -o "$BUILD/inform7.wasm"
 echo "  -> $(du -h "$BUILD/inform7.wasm" | cut -f1)"
 
@@ -220,6 +243,9 @@ rm -f "$BUILD/inform7.o"
 echo "--- Step 7/7: Copying Internal resources ---"
 
 cp -r "$SUB/inform/inform7/Internal" "$BUILD/Internal"
+
+# Copy generated Syntax.preform into place
+cp "$SUB/inform/inform7/Tangled/Syntax.preform" "$BUILD/Internal/Languages/English/Syntax.preform"
 
 # Create CSS copies for Linux platform
 cp "$BUILD/Internal/HTML/main.css" "$BUILD/Internal/HTML/linux-main.css"
