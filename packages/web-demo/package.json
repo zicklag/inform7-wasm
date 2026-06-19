@@ -1,0 +1,25 @@
+{
+  "name": "web-demo",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "vite dev",
+    "build": "pnpm prepare-assets && vite build",
+    "preview": "vite preview",
+    "prepare-assets": "node scripts/copy-interpreter.mjs",
+    "clean": "rm -rf .svelte-kit build"
+  },
+  "dependencies": {
+    "inform7-wasm": "workspace:*",
+    "monaco-editor": "^0.52.0"
+  },
+  "devDependencies": {
+    "@sveltejs/adapter-static": "^3.0.8",
+    "@sveltejs/kit": "^2.20.2",
+    "@sveltejs/vite-plugin-svelte": "^5.0.3",
+    "svelte": "^5.25.3",
+    "typescript": "^5.7.0",
+    "vite": "^6.3.2"
+  }
+}
