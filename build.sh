@@ -183,13 +183,13 @@ WASI_FLAGS=(
 
 # Compile wasi-stubs
 echo "  Compiling wasi-stubs..."
-$CLANG "${WASI_FLAGS[@]}" -std=gnu11 -O0 -c "$WASI_STUBS_C" -o "$BUILD/wasi-stubs.o"
+$CLANG "${WASI_FLAGS[@]}" -std=gnu11 -Os -c "$WASI_STUBS_C" -o "$BUILD/wasi-stubs.o"
 
 # --- inform6 ---
 echo "  Compiling inform6.wasm..."
 $CLANG "${WASI_FLAGS[@]}" \
     -D_POSIX_C_SOURCE=200112L -D_DEFAULT_SOURCE -DLINUX \
-    -std=c99 -Os \
+    -std=c99 -O2 \
     "$SUB/inform/inform6/Inform6/"*.c \
     -o "$BUILD/inform6.wasm" -nostdlib \
     "$WASI_SYSROOT/lib/wasm32-wasip1/crt1-command.o" \
@@ -203,7 +203,7 @@ echo "  -> $(du -h "$BUILD/inform6.wasm" | cut -f1)"
 echo "  Compiling inblorb.wasm..."
 $CLANG "${WASI_FLAGS[@]}" \
     -D_POSIX_C_SOURCE=200112L -D_DEFAULT_SOURCE \
-    -std=c11 -Os \
+    -std=c11 -O2 \
     "$SUB/inform/inblorb/Tangled/inblorb.c" \
     "$BUILD/wasi-stubs.o" \
     -o "$BUILD/inblorb.wasm" -nostdlib \
@@ -218,7 +218,7 @@ echo "  -> $(du -h "$BUILD/inblorb.wasm" | cut -f1)"
 echo "  Compiling inform7.wasm..."
 $CLANG "${WASI_FLAGS[@]}" \
     -DINFORM7_PATH='"./inform/inform7/Internal"' \
-    -std=gnu11 -O0 \
+    -std=gnu11 -O2 \
     -I"$CUSTOM_INCLUDE" \
     -I"$SUB/inform/inform7/Tangled" \
     -I"$SUB/inweb/foundation-module" \
@@ -227,7 +227,7 @@ $CLANG "${WASI_FLAGS[@]}" \
     -o "$BUILD/inform7.o"
 
 $CLANG "${WASI_FLAGS[@]}" \
-    -std=gnu11 -O0 \
+    -std=gnu11 -O2 \
     -I"$CUSTOM_INCLUDE" \
     -I"$SUB/inform/inform7/Tangled" \
     -I"$SUB/inweb/foundation-module" \
