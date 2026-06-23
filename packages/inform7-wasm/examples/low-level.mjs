@@ -12,7 +12,7 @@
  * The compiled .gblorb is written to examples/output/low-level.gblorb.
  */
 
-import { runWasi, parseVirtualFS } from "../packages/inform7-wasm/dist/index.js";
+import { runWasi, parseVirtualFS } from "../dist/index.js";
 import { readFile, writeFile, mkdir } from "node:fs/promises";
 import { fileURLToPath } from "node:url";
 import path from "node:path";
@@ -34,7 +34,7 @@ const source = [
 
 console.log("=== Low-Level API Demo ===\n");
 
-const pkgDir = new URL("../packages/inform7-wasm/", import.meta.url);
+const pkgDir = new URL("../", import.meta.url);
 
 const [inform7, inform6, inblorb, inform7Internal] = await Promise.all([
   readFile(new URL("assets/inform7.wasm", pkgDir)).then(WebAssembly.compile),
@@ -77,11 +77,9 @@ console.log(`  ✅ Produced auto.inf (${(autoInf.byteLength / 1024).toFixed(1)} 
 console.log("--- Step 2/3: inform6 (.i6 → .ulx) ---");
 console.log("  Args: -E2SwG /my-project/Build/auto.inf /my-project/Build/output.ulx");
 
-Object.assign(virtualFs, afterInform7);
-
 const afterInform6 = await runWasi(inform6, {
   args: ["inform6.wasm", "-E2SwG", "/my-project/Build/auto.inf", "/my-project/Build/output.ulx"],
-  virtualFs,
+  virtualFs: afterInform7,
 });
 
 const outputUlx = afterInform6["/my-project/Build/output.ulx"];
@@ -96,11 +94,9 @@ console.log(`  ✅ Produced output.ulx (${(outputUlx.byteLength / 1024).toFixed(
 console.log("--- Step 3/3: inblorb (.ulx → .gblorb) ---");
 console.log("  Args: -project /my-project");
 
-Object.assign(virtualFs, afterInform6);
-
 const afterInblorb = await runWasi(inblorb, {
   args: ["inblorb.wasm", "-project", "/my-project"],
-  virtualFs,
+  virtualFs: afterInform6,
 });
 
 const outputGblorb = afterInblorb["/my-project/Build/output.zblorb"];

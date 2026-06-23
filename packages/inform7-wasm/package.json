@@ -21,9 +21,8 @@
     "build": "tsc",
     "prepublishOnly": "tsc",
     "copy-wasm": "cp ../../build/*.wasm assets/",
-    "copy-inform7-internal": "cp -r ../../build/Internal assets/inform7-internal/",
     "generate-inform7-internal": "node scripts/generate-inform7-internal.mjs",
-    "prepare-assets": "pnpm copy-wasm && pnpm copy-inform7-internal && pnpm generate-inform7-internal"
+    "prepare-assets": "mkdir -p assets && pnpm copy-wasm && pnpm generate-inform7-internal"
   },
   "keywords": [
     "inform7",

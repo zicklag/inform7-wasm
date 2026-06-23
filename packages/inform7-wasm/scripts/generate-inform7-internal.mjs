@@ -20,7 +20,7 @@ import { fileURLToPath } from "node:url";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const packageRoot = path.resolve(__dirname, "..");
-const internalDir = path.join(packageRoot, "assets", "inform7-internal");
+const internalDir = path.join(packageRoot, "..", "..", "build", "Internal");
 
 function walkDir(dir, basePath = "") {
   const entries = {};

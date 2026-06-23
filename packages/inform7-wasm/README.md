@@ -2,7 +2,7 @@
 
 Compile [Inform 7](https://ganelson.github.io/inform-website/) interactive fiction stories to playable `.gblorb` files using pure WASM modules — no native dependencies at runtime.
 
-Works in **Node.js**, **Deno**, and (soon) the **browser**.
+Works in **Node.js**, **Deno**, and the **browser**.
 
 ## Install
 

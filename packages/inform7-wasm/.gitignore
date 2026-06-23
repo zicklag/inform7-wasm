@@ -1,7 +1,4 @@
 dist/
 node_modules/
-assets/inform7.wasm
-assets/inform6.wasm
-assets/inblorb.wasm
-assets/inform7-internal/
-assets/inform7-internal.data
+assets/
+examples/output
