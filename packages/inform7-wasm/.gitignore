@@ -1,6 +1,7 @@
 dist/
 node_modules/
-wasm/*.wasm
-internal/
-internal.json
-internal.json.gz
+assets/inform7.wasm
+assets/inform6.wasm
+assets/inblorb.wasm
+assets/internal/
+assets/internal.data

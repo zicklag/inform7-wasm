@@ -8,9 +8,15 @@
     "build:wasm": "bash build.sh",
     "build:package": "cd packages/inform7-wasm && pnpm prepare-assets && pnpm build",
     "build:all": "pnpm build:wasm && pnpm build:package",
-    "clean": "pnpm -r clean"
+    "clean": "pnpm -r clean",
+    "lint": "biome check .",
+    "lint:fix": "biome check --write .",
+    "format": "biome format --write ."
   },
   "engines": {
     "node": ">=20"
+  },
+  "devDependencies": {
+    "@biomejs/biome": "^1.9.4"
   }
 }

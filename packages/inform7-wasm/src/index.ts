@@ -3,29 +3,15 @@
  * using pure WASM modules, entirely in-memory via a virtual filesystem.
  *
  * Works identically on Node.js, Deno, and the browser.
- *
- * @example
- * ```typescript
- * import { compile, loadInternalFromPackage } from "inform7-wasm";
- *
- * const virtualInternal = await loadInternalFromPackage();
- *
- * const result = await compile({
- *   source: `"Hello World" by Example
- * The Starting Room is a room. "A simple room."
- * The player is in the Starting Room.`,
- *   virtualInternal,
- * });
- *
- * // result.output.gblorb is a Uint8Array of the playable file
- * ```
  */
 
+// ── Low-level API ───────────────────────────────────────────────────────
+// Run any inform binary with completely custom args and virtual filesystem.
+export { runWasi } from "./wasi.js";
+export type { WasiOptions } from "./wasi.js";
+
+// ── High-level API ──────────────────────────────────────────────────────
+// Convenience layer for the most common compilation needs.
 export { compile } from "./pipeline.js";
-export {
-  loadInternalFromUrl,
-  loadInternalFromResponse,
-  loadInternalFromPackage,
-  createVirtualProject,
-} from "./browser.js";
+export { parseVirtualFS as parseInternalData, createVirtualProject, VirtualFS } from "./virtualfs.js";
 export type { CompileOptions, CompileResult } from "./types.js";

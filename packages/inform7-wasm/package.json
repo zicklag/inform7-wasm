@@ -15,17 +15,15 @@
   },
   "files": [
     "dist",
-    "wasm/*.wasm",
-    "internal/**",
-    "internal.json"
+    "assets"
   ],
   "scripts": {
     "build": "tsc",
     "prepublishOnly": "tsc",
-    "copy-wasm": "cp ../../build/*.wasm wasm/",
-    "copy-internal": "cp -r ../../build/Internal internal/",
-    "generate-internal-json": "node scripts/generate-internal-json.mjs",
-    "prepare-assets": "pnpm copy-wasm && pnpm copy-internal && pnpm generate-internal-json"
+    "copy-wasm": "cp ../../build/*.wasm assets/",
+    "copy-internal": "cp -r ../../build/Internal assets/internal/",
+    "generate-internal": "node scripts/generate-internal.mjs",
+    "prepare-assets": "pnpm copy-wasm && pnpm copy-internal && pnpm generate-internal"
   },
   "keywords": [
     "inform7",

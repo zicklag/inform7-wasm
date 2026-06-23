@@ -1,31 +1,23 @@
 import {
   compile as inform7Compile,
-  loadInternalFromUrl,
+  parseInternalData,
 } from "inform7-wasm";
 
-// Resolve a static asset path relative to the app's base URL.
-// In dev (BASE_URL="/") this is a no-op; in production on GitHub Pages
-// (BASE_URL="/inform7-wasm/") it prepends the base path.
 function asset(path: string): string {
   const base = import.meta.env.BASE_URL || "/";
   return base.replace(/\/+$/, "") + path;
 }
 
-// Cache the virtual internal filesystem after first load
 let internalFs: Record<string, Uint8Array> | null = null;
 
 async function getInternalFs(): Promise<Record<string, Uint8Array>> {
   if (!internalFs) {
-    // Load from the static copy (gzipped JSON — the gzip-on-gzip issue
-    // was only with Vite's dev server; production serves .gz files as-is)
-    internalFs = await loadInternalFromUrl(asset("/inform7-internals.json.gz"));
+    const response = await fetch(asset("/inform7-internals.data"));
+    internalFs = parseInternalData(new Uint8Array(await response.arrayBuffer()));
   }
   return internalFs;
 }
 
-/**
- * Fetch a WASM binary from a static URL and return it as a Uint8Array.
- */
 async function fetchWasm(path: string): Promise<Uint8Array> {
   const response = await fetch(asset(path));
   if (!response.ok) {
@@ -37,26 +29,19 @@ async function fetchWasm(path: string): Promise<Uint8Array> {
 }
 
 export interface CompileResult {
-  /** The compiled gblorb data */
   gblorb?: Uint8Array;
-  /** The raw Glulx story file (fallback if gblorb wasn't produced) */
   ulx?: Uint8Array;
 }
 
 export interface CompileOptions {
-  /** Inform 7 source text */
   source: string;
-  /** Called with each line of compiler output */
   onLog?: (line: string) => void;
 }
 
-/**
- * Compile an Inform 7 source string to a playable gblorb.
- */
 export async function compile(options: CompileOptions): Promise<CompileResult> {
   const { source, onLog } = options;
 
-  const [virtualInternal, inform7Wasm, inform6Wasm, inblorbWasm] =
+  const [virtualInternal, inform7Bytes, inform6Bytes, inblorbBytes] =
     await Promise.all([
       getInternalFs(),
       fetchWasm("/inform7.wasm"),
@@ -64,7 +49,12 @@ export async function compile(options: CompileOptions): Promise<CompileResult> {
       fetchWasm("/inblorb.wasm"),
     ]);
 
-  // Intercept console.log to capture WASI stdout
+  const [inform7Mod, inform6Mod, inblorbMod] = await Promise.all([
+    WebAssembly.compile(inform7Bytes),
+    WebAssembly.compile(inform6Bytes),
+    WebAssembly.compile(inblorbBytes),
+  ]);
+
   const origLog = console.log;
   const lines: string[] = [];
   console.log = (...args: unknown[]) => {
@@ -78,9 +68,9 @@ export async function compile(options: CompileOptions): Promise<CompileResult> {
       source,
       virtualInternal,
       wasm: {
-        inform7: inform7Wasm.buffer,
-        inform6: inform6Wasm.buffer,
-        inblorb: inblorbWasm.buffer,
+        inform7: inform7Mod,
+        inform6: inform6Mod,
+        inblorb: inblorbMod,
       },
       format: "gblorb",
       onProgress(msg) {
