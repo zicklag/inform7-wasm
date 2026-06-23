@@ -58,13 +58,12 @@ Both are downloaded from the [wasi-sdk releases](https://github.com/WebAssembly/
 
 ## What's New
 
-- **Node.js compile script** — `examples/compile.mjs` compiles any Inform 7 project using Node.js built-in WASI (no wasmtime needed)
+- **JS package** — [`inform7`](https://www.npmjs.com/package/inform7) on npm for Node.js, Deno, and browser
+- **Web demo** — Browser-based IDE at [`packages/web-demo/`](packages/web-demo/) deployed to GitHub Pages
+- **CI/CD** — GitHub Actions workflow at `.github/workflows/deploy-web-demo.yml` auto-deploys the web demo
+- **High-level API** — Single `compile()` call in the JS package (see `examples/high-level.mjs`)
+- **Low-level API** — Step-by-step `runWasi()` with virtual filesystem (see `examples/low-level.mjs`)
+- **Node.js compile script** — `examples/compile.mjs` compiles any Inform 7 project using Node.js built-in WASI
 - **Example story** — `examples/hello/` contains a minimal "Hello World" story ready to compile
 - **Binary kits** — All five Inter kits are now built during compilation, not just EnglishLanguageKit
-
-## Upcoming
-
-- **npm package** — `@inform7/wasi` for use in Node.js and browser via `@bjorn3/browser_wasi_shim`
-- **Unified WASM binary** — single binary that runs the full pipeline in-process
-- **CI/CD** — automated builds with GitHub Actions
-- **Multi-arch** — AArch64 WASM builds
+- **Performance optimization** — WASM binaries compiled with `-O2` for speed

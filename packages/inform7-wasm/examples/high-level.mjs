@@ -18,23 +18,11 @@ import path from "node:path";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
-const source = [
-  '"High-Level Demo" by Example',
-  "",
-  'The Laboratory is a room. "A cluttered laboratory filled with bubbling beakers and humming machines."',
-  "",
-  'The mysterious crystal is in the Laboratory. "A glowing crystal pulses with an inner light."',
-  'The description of the crystal is "It radiates a warm, pulsating glow."',
-  "",
-  "Instead of taking the crystal:",
-  '  say "As you reach for it, the crystal flares brightly and you pull your hand back.";',
-  "",
-  "The brass key is in the Laboratory.",
-  "",
-  "The Storage Room is west of the Laboratory.",
-  "",
-  'Test me with "look / examine crystal / take crystal / go west".',
-].join("\n");
+const source = `"High-Level Demo" by Example
+
+The Meadow is a room. "A sunlit meadow."
+
+The wooden bridge is in the Meadow.`;
 
 // ── Compile ──────────────────────────────────────────────────────────────
 

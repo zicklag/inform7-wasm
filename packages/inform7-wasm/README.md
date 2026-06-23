@@ -1,4 +1,4 @@
-# inform7-wasm
+# inform7
 
 Compile [Inform 7](https://ganelson.github.io/inform-website/) interactive fiction stories to playable `.gblorb` files using pure WASM modules — no native dependencies at runtime.
 
@@ -7,11 +7,11 @@ Works in **Node.js**, **Deno**, and the **browser**.
 ## Install
 
 ```bash
-npm install inform7-wasm
+npm install inform7
 # or
-pnpm add inform7-wasm
+pnpm add inform7
 # or
-deno add npm:inform7-wasm
+deno add npm:inform7
 ```
 
 ## Usage
@@ -19,15 +19,24 @@ deno add npm:inform7-wasm
 ### Compile from source (returns buffers)
 
 ```typescript
-import { compile } from "inform7-wasm";
+import { compile, parseVirtualFS } from "inform7";
+import { readFile } from "node:fs/promises";
+
+// Load the pre-compiled WASM modules and Internal resource blob
+const [inform7, inform6, inblorb, inform7Internal] = await Promise.all([
+  readFile("node_modules/inform7/assets/inform7.wasm").then(WebAssembly.compile),
+  readFile("node_modules/inform7/assets/inform6.wasm").then(WebAssembly.compile),
+  readFile("node_modules/inform7/assets/inblorb.wasm").then(WebAssembly.compile),
+  readFile("node_modules/inform7/assets/inform7-internal.data").then(parseVirtualFS),
+]);
 
 const result = await compile({
   source: `"Hello World" by Example
 
 The Starting Room is a room. "A simple room."
-The player is in the Starting Room.
-
-The hello sign is a thing in the Starting Room.`,
+The player is in the Starting Room.`,
+  wasm: { inform7, inform6, inblorb },
+  inform7Internal,
 });
 
 // result.output.gblorb — Uint8Array of the playable file
@@ -35,17 +44,15 @@ The hello sign is a thing in the Starting Room.`,
 // result.output.inf   — Uint8Array of the generated Inform 6 code
 ```
 
-### Compile from a project directory (Node.js/Deno)
+### Compile with progress
 
 ```typescript
-import { compile } from "inform7-wasm";
-
 const result = await compile({
-  projectDir: "/path/to/My Project",
+  source: `...`,
+  wasm: { inform7, inform6, inblorb },
+  inform7Internal,
+  onProgress: (msg) => console.log(msg),
 });
-
-// result.blorbFile — path to the output .gblorb
-// result.ulxFile  — path to the output .ulx
 ```
 
 ## API
@@ -54,13 +61,48 @@ const result = await compile({
 
 | Option | Type | Default | Description |
 |--------|------|---------|-------------|
-| `source` | `string` | — | Source text of the story (mutually exclusive with `projectDir`) |
-| `projectDir` | `string` | — | Path to project directory (mutually exclusive with `source`) |
+| `source` | `string` | **required** | Source text of the story |
+| `wasm` | `{ inform7, inform6, inblorb }` | **required** | Pre-compiled `WebAssembly.Module` instances |
+| `inform7Internal` | `VirtualFS` | **required** | Virtual filesystem with Internal resources (parse from `inform7-internal.data`) |
 | `format` | `'ulx' \| 'gblorb'` | `'gblorb'` | Output format |
-| `wasm` | `{ inform7?, inform6?, inblorb? }` | bundled | Override WASM binary paths |
-| `internalDir` | `string` | bundled | Override Internal resource directory |
-| `extensionsDir` | `string` | — | Extensions directory (file-based mode) |
+| `virtualProject` | `VirtualFS` | auto | Override the virtual project directory |
 | `onProgress` | `(msg: string) => void` | — | Progress callback |
+
+### Low-level API
+
+```typescript
+import { runWasi, parseVirtualFS } from "inform7";
+
+// Load the WASM and inform7Internals like in the Usage example above.
+
+// Build a virtual filesystem with source and Internal resources
+let fs = {
+  ...inform7Internal,
+  "/my-project/Source/story.ni": new TextEncoder().encode(source),
+};
+
+// Step 1: .ni → .i6
+fs = await runWasi(inform7, {
+  args: ["inform7.wasm", "-project", "/my-project", "-internal", "/inform7/Internal"],
+  virtualFs: fs,
+});
+
+// Step 2: .i6 → .ulx
+fs = await runWasi(inform6, {
+  args: ["inform6.wasm", "-E2SwG", "/my-project/Build/auto.inf", "/my-project/Build/output.ulx"],
+  virtualFs: fs,
+});
+
+// Step 3: .ulx → .gblorb
+fs = await runWasi(inblorb, {
+  args: ["inblorb.wasm", "-project", "/my-project"],
+  virtualFs: fs,
+});
+
+const gblorb = fs["/my-project/Build/output.zblorb"];
+```
+
+See [`examples/low-level.mjs`](examples/low-level.mjs) for a complete working example.
 
 ## How it works
 
@@ -70,7 +112,9 @@ The package bundles three WASM binaries compiled from the official Inform 7 sour
 2. **inform6.wasm** — Compiles `.i6` → Glulx story file (`.ulx`)
 3. **inblorb.wasm** — Packages `.ulx` → blorb file (`.gblorb`) with resources
 
-Plus the `Internal/` resource directory (CSS, templates, language definitions, kits).
+Plus the `Internal/` resource directory (CSS, templates, language definitions, kits) serialized as `inform7-internal.data`.
+
+All compilation happens entirely in-memory via a virtual filesystem backed by [`@bjorn3/browser_wasi_shim`](https://github.com/bjorn3/browser_wasi_shim), so it works identically on Node.js, Deno, and the browser.
 
 ## License
 

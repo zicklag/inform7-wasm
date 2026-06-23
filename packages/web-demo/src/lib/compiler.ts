@@ -1,4 +1,5 @@
 import {
+  compile as inform7Compile,
   parseVirtualFS,
 } from "inform7";
 

@@ -11,7 +11,7 @@
  * is responsible for prefixing paths with /inform7/Internal when
  * building the VirtualFS for compilation.
  *
- * Usage: node scripts/generate-internal.mjs
+ * Usage: node scripts/generate-inform7-internal.mjs
  */
 
 import fs from "node:fs";
