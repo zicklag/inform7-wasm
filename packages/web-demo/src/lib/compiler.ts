@@ -1,7 +1,6 @@
 import {
-  compile as inform7Compile,
   parseVirtualFS,
-} from "inform7-wasm";
+} from "inform7";
 
 function asset(path: string): string {
   const base = import.meta.env.BASE_URL || "/";

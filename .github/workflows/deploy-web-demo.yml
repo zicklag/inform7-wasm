@@ -44,18 +44,6 @@ jobs:
       - name: Install dependencies
         run: pnpm install
 
-      - name: Build inform7-wasm package (TypeScript only)
-        run: |
-          # Copy pre-built WASM files into place so the package's wasm/
-          # directory is populated (needed for the package to be complete)
-          mkdir -p packages/inform7-wasm/wasm
-          cp packages/web-demo/static/inform7.wasm packages/inform7-wasm/wasm/
-          cp packages/web-demo/static/inform6.wasm packages/inform7-wasm/wasm/
-          cp packages/web-demo/static/inblorb.wasm packages/inform7-wasm/wasm/
-          # Compile TypeScript (no asset preparation needed — those are
-          # pre-built and committed in web-demo/static/)
-          cd packages/inform7-wasm && pnpm build
-
       - name: Build web demo
         run: pnpm --filter web-demo build
         env:

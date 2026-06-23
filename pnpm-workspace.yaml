@@ -3,3 +3,5 @@ packages:
 allowBuilds:
   '@biomejs/biome': true
   esbuild: true
+minimumReleaseAgeExclude:
+  - inform7@0.1.0-alpha.1
