@@ -1,4 +1,4 @@
-import { VirtualFS } from "./virtualfs.js";
+import type { VirtualFS } from "./virtualfs.js";
 
 /** Options for compiling an Inform 7 story. */
 export interface CompileOptions {
@@ -23,19 +23,23 @@ export interface CompileOptions {
   };
 
   /**
-   * Virtual filesystem for the Internal resource directory.
+   * Virtual filesystem for Inform 7's Internal resource directory.
    *
-   * A flat map of virtual paths to file contents. Generate this from
-   * the bundled internal.json.gz manifest using `loadInternalFromUrl()`:
+   * Paths should be under `/inform7/Internal/...` — this is where
+   * inform7 expects to find its templates, language definitions, kits,
+   * and built-in extensions.
+   *
+   * Generate this from the bundled `inform7-internal.data` file:
    *
    * ```ts
-   * const virtualInternal = await loadInternalFromUrl("/internal.json.gz");
+   * const raw = parseVirtualFS(await readFile("inform7-internal.data"));
+   * const inform7Internal: VirtualFS = {};
+   * for (const [path, data] of Object.entries(raw)) {
+   *   inform7Internal[`/inform7/Internal${path}`] = data;
+   * }
    * ```
-   *
-   * Required for browser use. In Node.js/Deno, defaults to loading from
-   * the bundled `internal.json.gz` shipped with this package.
    */
-  virtualInternal?: VirtualFS;
+  inform7Internal?: VirtualFS;
 
   /**
    * Virtual filesystem for the project directory.

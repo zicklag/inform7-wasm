@@ -11,7 +11,7 @@
  * The compiled .gblorb is written to examples/output/high-level.gblorb.
  */
 
-import { compile, parseInternalData } from "../packages/inform7-wasm/dist/index.js";
+import { compile, parseVirtualFS } from "../packages/inform7-wasm/dist/index.js";
 import { readFile, writeFile, mkdir } from "node:fs/promises";
 import { fileURLToPath } from "node:url";
 import path from "node:path";
@@ -36,28 +36,24 @@ const source = [
   'Test me with "look / examine crystal / take crystal / go west".',
 ].join("\n");
 
-// ── Load assets ──────────────────────────────────────────────────────────
+// ── Compile ──────────────────────────────────────────────────────────────
 
 console.log("=== High-Level API Demo ===\n");
 
 const pkgDir = new URL("../packages/inform7-wasm/", import.meta.url);
 
-console.log("Loading WASM binaries and Internal resources...");
-
-const [inform7, inform6, inblorb, internalData] = await Promise.all([
+const [inform7, inform6, inblorb, inform7Internal] = await Promise.all([
   readFile(new URL("assets/inform7.wasm", pkgDir)).then(WebAssembly.compile),
   readFile(new URL("assets/inform6.wasm", pkgDir)).then(WebAssembly.compile),
   readFile(new URL("assets/inblorb.wasm", pkgDir)).then(WebAssembly.compile),
-  readFile(new URL("assets/internal.data", pkgDir)),
+  readFile(new URL("assets/inform7-internal.data", pkgDir)).then(parseVirtualFS),
 ]);
-
-const virtualInternal = parseInternalData(internalData);
 
 console.log("Compiling...");
 const result = await compile({
   source,
   wasm: { inform7, inform6, inblorb },
-  virtualInternal,
+  inform7Internal,
   onProgress: console.log,
 });
 

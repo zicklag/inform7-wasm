@@ -3,5 +3,5 @@ node_modules/
 assets/inform7.wasm
 assets/inform6.wasm
 assets/inblorb.wasm
-assets/internal/
-assets/internal.data
+assets/inform7-internal/
+assets/inform7-internal.data

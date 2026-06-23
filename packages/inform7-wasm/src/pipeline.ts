@@ -1,5 +1,5 @@
 import type { CompileOptions, CompileResult } from "./types.js";
-import { VirtualFS } from "./virtualfs.js";
+import type { VirtualFS } from "./virtualfs.js";
 import { runWasi } from "./wasi.js";
 
 /**
@@ -20,7 +20,7 @@ export async function compile(options: CompileOptions): Promise<CompileResult> {
   // Build the virtual filesystem
   const encoder = new TextEncoder();
   const virtualFs: VirtualFS = {
-    ...(options.virtualInternal ?? {}),
+    ...(options.inform7Internal ?? {}),
     ...(options.virtualProject ?? {}),
     "/story/Source/story.ni": encoder.encode(options.source),
     "/story/Build/.empty": new Uint8Array(0),

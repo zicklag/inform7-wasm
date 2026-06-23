@@ -1,6 +1,6 @@
 import {
   compile as inform7Compile,
-  parseInternalData,
+  parseVirtualFS,
 } from "inform7-wasm";
 
 function asset(path: string): string {
@@ -8,14 +8,14 @@ function asset(path: string): string {
   return base.replace(/\/+$/, "") + path;
 }
 
-let internalFs: Record<string, Uint8Array> | null = null;
+let inform7Internal: Record<string, Uint8Array> | null = null;
 
-async function getInternalFs(): Promise<Record<string, Uint8Array>> {
-  if (!internalFs) {
+async function getInform7Internal(): Promise<Record<string, Uint8Array>> {
+  if (!inform7Internal) {
     const response = await fetch(asset("/inform7-internals.data"));
-    internalFs = parseInternalData(new Uint8Array(await response.arrayBuffer()));
+    inform7Internal = parseVirtualFS(new Uint8Array(await response.arrayBuffer()));
   }
-  return internalFs;
+  return inform7Internal;
 }
 
 async function fetchWasm(path: string): Promise<Uint8Array> {
@@ -41,9 +41,9 @@ export interface CompileOptions {
 export async function compile(options: CompileOptions): Promise<CompileResult> {
   const { source, onLog } = options;
 
-  const [virtualInternal, inform7Bytes, inform6Bytes, inblorbBytes] =
+  const [inform7InternalFs, inform7Bytes, inform6Bytes, inblorbBytes] =
     await Promise.all([
-      getInternalFs(),
+      getInform7Internal(),
       fetchWasm("/inform7.wasm"),
       fetchWasm("/inform6.wasm"),
       fetchWasm("/inblorb.wasm"),
@@ -66,7 +66,7 @@ export async function compile(options: CompileOptions): Promise<CompileResult> {
   try {
     const result = await inform7Compile({
       source,
-      virtualInternal,
+      inform7Internal: inform7InternalFs,
       wasm: {
         inform7: inform7Mod,
         inform6: inform6Mod,

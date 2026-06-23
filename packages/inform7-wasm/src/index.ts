@@ -13,5 +13,5 @@ export type { WasiOptions } from "./wasi.js";
 // ── High-level API ──────────────────────────────────────────────────────
 // Convenience layer for the most common compilation needs.
 export { compile } from "./pipeline.js";
-export { parseVirtualFS as parseInternalData, createVirtualProject, VirtualFS } from "./virtualfs.js";
+export { parseVirtualFS, encodeVirtualFS, createVirtualProject, VirtualFS } from "./virtualfs.js";
 export type { CompileOptions, CompileResult } from "./types.js";

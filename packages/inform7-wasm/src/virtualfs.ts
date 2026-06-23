@@ -2,16 +2,51 @@
 export type VirtualFS = Record<string, Uint8Array>;
 
 /**
+ * Encode a virtual filesystem into a length-prefixed binary blob.
+ *
+ * Format: [pathLen:4][contentLen:4][path:pathLen][content:contentLen] repeated
+ *
+ * This is the inverse of {@link parseVirtualFS}. Use it to generate the
+ * binary blob that can be loaded later with parseVirtualFS.
+ *
+ * @param files  The virtual filesystem to encode
+ * @returns      The encoded binary blob
+ */
+export function encodeVirtualFS(files: VirtualFS): Uint8Array {
+  const encoder = new TextEncoder();
+  const chunks: Uint8Array[] = [];
+
+  for (const [filePath, data] of Object.entries(files)) {
+    const pathBytes = encoder.encode(filePath);
+
+    const header = new Uint8Array(8);
+    const view = new DataView(header.buffer);
+    view.setUint32(0, pathBytes.length, true);
+    view.setUint32(4, data.length, true);
+
+    chunks.push(header, pathBytes, data);
+  }
+
+  const blob = new Uint8Array(chunks.reduce((acc, c) => acc + c.length, 0));
+  let offset = 0;
+  for (const chunk of chunks) {
+    blob.set(chunk, offset);
+    offset += chunk.length;
+  }
+
+  return blob;
+}
+
+/**
  * Parse a length-prefixed binary blob into a virtual filesystem.
  *
  * Format: [pathLen:4][path:pathLen][contentLen:4][content:contentLen] repeated
  *
- * This is the raw decompressed data from `internal.data.gz` — the caller is
- * responsible for loading and decompressing the file however their platform
- * requires.
+ * Perfect round-trip with {@link encodeVirtualFS} — no path manipulation
+ * is performed, the paths in the blob are returned as-is.
  *
- * @param data  The decompressed binary blob
- * @returns     A flat path→Uint8Array map suitable for `virtualInternal`
+ * @param data  The binary blob produced by encodeVirtualFS
+ * @returns     A flat path→Uint8Array map
  */
 export function parseVirtualFS(data: Uint8Array): VirtualFS {
   const files: VirtualFS = {};
@@ -25,7 +60,7 @@ export function parseVirtualFS(data: Uint8Array): VirtualFS {
     offset += 4;
     const path = new TextDecoder().decode(data.subarray(offset, offset + pathLen));
     offset += pathLen;
-    files[`/inform7/Internal${path}`] = data.subarray(offset, offset + contentLen);
+    files[path] = data.subarray(offset, offset + contentLen);
     offset += contentLen;
   }
 

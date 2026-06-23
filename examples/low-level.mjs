@@ -12,7 +12,7 @@
  * The compiled .gblorb is written to examples/output/low-level.gblorb.
  */
 
-import { runWasi, parseInternalData } from "../packages/inform7-wasm/dist/index.js";
+import { runWasi, parseVirtualFS } from "../packages/inform7-wasm/dist/index.js";
 import { readFile, writeFile, mkdir } from "node:fs/promises";
 import { fileURLToPath } from "node:url";
 import path from "node:path";
@@ -36,14 +36,14 @@ console.log("=== Low-Level API Demo ===\n");
 
 const pkgDir = new URL("../packages/inform7-wasm/", import.meta.url);
 
-console.log("Loading WASM binaries and Internal resources...");
-
 const [inform7, inform6, inblorb, inform7Internal] = await Promise.all([
   readFile(new URL("assets/inform7.wasm", pkgDir)).then(WebAssembly.compile),
   readFile(new URL("assets/inform6.wasm", pkgDir)).then(WebAssembly.compile),
   readFile(new URL("assets/inblorb.wasm", pkgDir)).then(WebAssembly.compile),
-  readFile(new URL("assets/internal.data", pkgDir)).then(parseInternalData),
+  readFile(new URL("assets/inform7-internal.data", pkgDir)).then(parseVirtualFS),
 ]);
+
+// ── Build the initial virtual filesystem ──────────────────────────────────
 
 const encoder = new TextEncoder();
 
