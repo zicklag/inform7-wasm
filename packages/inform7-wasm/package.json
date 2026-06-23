@@ -1,6 +1,6 @@
 {
   "name": "inform7-wasm",
-  "version": "0.1.0",
+  "version": "0.1.0-alpha.1",
   "description": "Inform 7 toolchain as WASM modules — compile .ni stories to playable .gblorb files in Node.js, Deno, and the browser",
   "type": "module",
   "main": "./dist/index.js",
@@ -18,8 +18,7 @@
     "assets"
   ],
   "scripts": {
-    "build": "tsc",
-    "prepublishOnly": "tsc",
+    "build": "tsc && pnpm prepare-assets",
     "copy-wasm": "cp ../../build/*.wasm assets/",
     "generate-inform7-internal": "node scripts/generate-inform7-internal.mjs",
     "prepare-assets": "mkdir -p assets && pnpm copy-wasm && pnpm generate-inform7-internal"
