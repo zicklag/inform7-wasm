@@ -1,7 +1,7 @@
 {
-  "name": "inform7-wasm",
+  "name": "inform7",
   "version": "0.1.0-alpha.1",
-  "description": "Inform 7 toolchain as WASM modules — compile .ni stories to playable .gblorb files in Node.js, Deno, and the browser",
+  "description": "Unofficial Inform 7 WASM port — compile .ni stories to playable .gblorb files in Node.js, Deno, and the browser",
   "type": "module",
   "main": "./dist/index.js",
   "module": "./dist/index.js",
