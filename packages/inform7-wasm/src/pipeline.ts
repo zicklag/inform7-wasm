@@ -13,8 +13,6 @@ export async function compile(options: CompileOptions): Promise<CompileResult> {
     throw new Error("The 'source' option is required.");
   }
 
-  const format = options.format ?? "gblorb";
-
   const { inform7: inform7Wasm, inform6: inform6Wasm, inblorb: inblorbWasm } = options.wasm;
 
   // Build the virtual filesystem
@@ -55,23 +53,22 @@ export async function compile(options: CompileOptions): Promise<CompileResult> {
   // ── Step 3: .ulx → .gblorb (inblorb) ──
   let outputGblorb: Uint8Array | undefined;
 
-  if (format === "gblorb") {
-    if (!inblorbWasm) {
-      throw new Error("inblorb.wasm is required for gblorb format");
-    }
-
-    options.onProgress?.("Packaging to blorb (inblorb)...");
-    Object.assign(virtualFs, afterInform6);
-
-    const afterInblorb = await runWasi(inblorbWasm, {
-      args: ["inblorb.wasm", "-project", "/story"],
-      virtualFs,
-    });
-
-    outputGblorb = findInOutput(afterInblorb, "/story/Build/output.zblorb");
+  if (!inblorbWasm) {
+    throw new Error("inblorb.wasm is required for gblorb format");
   }
 
+  options.onProgress?.("Packaging to blorb (inblorb)...");
+  Object.assign(virtualFs, afterInform6);
+
+  const afterInblorb = await runWasi(inblorbWasm, {
+    args: ["inblorb.wasm", "-project", "/story"],
+    virtualFs,
+  });
+
+  outputGblorb = findInOutput(afterInblorb, "/story/Build/output.zblorb");
+
   return {
+    virtualFs: afterInblorb,
     output: {
       inf: autoInf,
       ulx: outputUlx,

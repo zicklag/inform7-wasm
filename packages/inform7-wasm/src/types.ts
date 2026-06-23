@@ -7,9 +7,6 @@ export interface CompileOptions {
    */
   source: string;
 
-  /** Output format. Default: 'gblorb' */
-  format?: "ulx" | "gblorb";
-
   /**
    * Pre-compiled WebAssembly modules for each tool.
    *
@@ -57,6 +54,7 @@ export interface CompileOptions {
 
 /** Result of a successful compilation. */
 export interface CompileResult {
+  virtualFs: VirtualFS,
   /** Output files as Uint8Array buffers. */
   output: {
     /** The compiled Inform 6 intermediate source. */
