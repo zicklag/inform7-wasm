@@ -34,6 +34,15 @@ inform7-wasm/
 │   ├── inform/              # ganelson/inform @ v10.1.2
 │   ├── inweb/               # ganelson/inweb @ v7.2.0
 │   └── intest/              # ganelson/intest @ v2.1.0
+├── packages/
+│   ├── inform7-wasm/        # npm package (TypeScript, Node.js + browser)
+│   └── web-demo/            # SvelteKit browser IDE (Monaco + Glulx interpreter)
+├── examples/
+│   ├── compile.mjs          # File-based compilation via Node.js WASI
+│   ├── compile-wasmtime.sh  # File-based compilation via wasmtime
+│   ├── high-level.mjs       # JS package high-level API demo
+│   ├── low-level.mjs        # JS package low-level API demo
+│   └── hello/               # Example "Hello World" story
 ├── resources/               # (gitignored) Downloaded WASI SDK
 └── build/                   # (gitignored) Build output
 ```

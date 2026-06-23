@@ -4,18 +4,122 @@
 
 **[Try the web demo →](https://zicklag.github.io/inform7-wasm/)**
 
-A fully reproducible build of the [Inform 7](https://ganelson.github.io/inform-website/) toolchain as **pure WASI modules** — no JavaScript glue, no native dependencies at runtime.
+A build of the [Inform 7](https://ganelson.github.io/inform-website/) toolchain as WASI WASM modules.
 
-Compile Inform 7 source text (`.ni`) into playable Glulx story files (`.gblorb`) on any platform with a WASI runtime — Node.js, Deno, wasmtime, or even the browser.
+Lets you compile Inform 7 source text (`.ni`) into playable Glulx story files (`.gblorb`) on any platform with a WASI runtime — Node.js, Deno, wasmtime, or the browser.
 
 ## What's in this repo
 
-- **WASM binaries** — `inform7.wasm`, `inform6.wasm`, and `inblorb.wasm` compiled from the official Inform 7 source, plus the build scripts and patches
-- **JS package** — [`inform7`](https://www.npmjs.com/package/inform7) on npm (also `inform7-wasm`), a TypeScript library for compiling stories in Node.js, Deno, and the browser with a simple `compile()` call
-- **Web demo** — A browser-based IDE at [`packages/web-demo/`](packages/web-demo/) that compiles and runs stories entirely client-side using Monaco editor and a Glulx interpreter
-- **CI/CD** — GitHub Actions workflow that automatically builds and deploys the web demo to GitHub Pages
+- **Build Script & Patches:** A script and the patches needed to compile inform7's toolchain to WASM.
+- **JS package** — [`inform7`](https://www.npmjs.com/package/inform7) on npm, a TypeScript library for compiling stories in Node.js, Deno, and the browser using the WASM modules.
+- **Web demo** — A browser demo at [`packages/web-demo/`](packages/web-demo/) that compiles and runs stories entirely client-side, using the inform7 package for compilation and parchment as the interpreter.
 
-## Quick Start
+## Install
+
+```bash
+npm install inform7
+# or
+pnpm add inform7
+# or
+deno add npm:inform7
+```
+
+## Usage
+
+### Low-level API
+
+The core exports are `runWasi` and `parseVirtualFS`. They give you full control over each compilation step.
+
+```typescript
+import { runWasi, parseVirtualFS } from "inform7";
+import { readFile } from "node:fs/promises";
+
+// Load the pre-compiled WASM modules and Internal resource blob
+const [inform7, inform6, inblorb, inform7Internal] = await Promise.all([
+  readFile("node_modules/inform7/assets/inform7.wasm").then(WebAssembly.compile),
+  readFile("node_modules/inform7/assets/inform6.wasm").then(WebAssembly.compile),
+  readFile("node_modules/inform7/assets/inblorb.wasm").then(WebAssembly.compile),
+  readFile("node_modules/inform7/assets/inform7-internal.data").then(parseVirtualFS),
+]);
+
+// Build a virtual filesystem with source and Internal resources
+let fs = {
+  ...inform7Internal,
+  "/my-project/Source/story.ni": new TextEncoder().encode(`
+    "Hello World" by Example
+
+    The Starting Room is a room. "A simple room."
+    The player is in the Starting Room.
+  `),
+};
+
+// Step 1: .ni → .i6
+fs = await runWasi(inform7, {
+  args: ["inform7.wasm", "-project", "/my-project", "-internal", "/inform7/Internal"],
+  virtualFs: fs,
+});
+
+// Step 2: .i6 → .ulx
+fs = await runWasi(inform6, {
+  args: ["inform6.wasm", "-E2SwG", "/my-project/Build/auto.inf", "/my-project/Build/output.ulx"],
+  virtualFs: fs,
+});
+
+// Step 3: .ulx → .gblorb
+fs = await runWasi(inblorb, {
+  args: ["inblorb.wasm", "-project", "/my-project"],
+  virtualFs: fs,
+});
+
+const gblorb = fs["/my-project/Build/output.zblorb"];
+```
+
+See [`examples/low-level.mjs`](examples/low-level.mjs) for a complete working example.
+
+### `compile` helper
+
+For the common case of going straight from source to a `.gblorb` (or `.ulx`), use the `compile` convenience function:
+
+```typescript
+import { compile, parseVirtualFS } from "inform7";
+import { readFile } from "node:fs/promises";
+
+const [inform7, inform6, inblorb, inform7Internal] = await Promise.all([
+  readFile("node_modules/inform7/assets/inform7.wasm").then(WebAssembly.compile),
+  readFile("node_modules/inform7/assets/inform6.wasm").then(WebAssembly.compile),
+  readFile("node_modules/inform7/assets/inblorb.wasm").then(WebAssembly.compile),
+  readFile("node_modules/inform7/assets/inform7-internal.data").then(parseVirtualFS),
+]);
+
+const result = await compile({
+  source: `
+    "Hello World" by Example
+
+    The Starting Room is a room. "A simple room."
+    The player is in the Starting Room.
+  `,
+  wasm: { inform7, inform6, inblorb },
+  inform7Internal,
+});
+
+// result.output.gblorb — Uint8Array of the playable file
+// result.output.ulx    — Uint8Array of the Glulx story
+// result.output.inf    — Uint8Array of the generated Inform 6 code
+// result.virtualFs     — Mapping of file path to Uint8Array of files from the resulting filesystem
+```
+
+Optionally pass `onProgress` to see compilation status:
+
+```typescript
+const result = await compile({
+  source: `...`,
+  wasm: { inform7, inform6, inblorb },
+  inform7Internal,
+  onProgress: (msg) => console.log(msg),
+});
+```
+
+## Compiling to WASM
 
 ### Prerequisites
 
@@ -34,6 +138,7 @@ pixi run build
 ```
 
 Output goes to `build/`:
+
 ```
 build/
 ├── inform7.wasm       # .ni → .i6 compiler
@@ -43,143 +148,13 @@ build/
 └── wasi-stubs.o       # POSIX stubs (pthread, system, clock)
 ```
 
-### Compile a Story
+### Using Wasmtime
 
-#### Using the JS package (recommended)
-
-```bash
-pnpm install
-pnpm build:wasm    # build WASM binaries (or use pre-built ones)
-pnpm build:package # build the JS package with assets
-
-# High-level API — single function call
-node examples/high-level.mjs
-
-# Low-level API — step-by-step control
-node examples/low-level.mjs
-
-# File-based compilation (uses Node.js WASI directly)
-node examples/compile.mjs /path/to/My\ Project
-```
-
-#### Using wasmtime
+There's an example bash script that will compile a story using the [Wasmtime](https://wasmtime.dev/) instead of Node.js. This lets you run the WASM files directly without using any JS runtime.
 
 ```bash
 bash examples/compile-wasmtime.sh /path/to/My\ Project
 ```
-
-### Project Structure
-
-Your project directory should look like:
-
-```
-My Project/
-├── Source/
-│   └── story.ni          # Your Inform 7 source text
-├── Build/                # Created by inform7
-├── Index/                # Created by inform7
-└── My Project.materials/ # Created by inform7
-  └── Extensions/        # Project-specific extensions
-```
-
-## JS Package
-
-The [`inform7`](https://www.npmjs.com/package/inform7) npm package (also importable as `inform7-wasm`) provides two APIs:
-
-### High-level API
-
-```typescript
-import { compile } from "inform7";
-
-const result = await compile({
-  source: `"Hello World" by Example
-
-The Starting Room is a room. "A simple room."
-The player is in the Starting Room.`,
-});
-
-// result.output.gblorb — Uint8Array of the playable file
-// result.output.ulx    — Uint8Array of the Glulx story
-// result.output.inf   — Uint8Array of the generated Inform 6 code
-```
-
-### Low-level API
-
-```typescript
-import { runWasi, parseVirtualFS } from "inform7";
-
-// Run each binary step by step with a custom virtual filesystem
-const fs = { ...inform7Internal, "/my-project/Source/story.ni": source };
-const afterInform7 = await runWasi(inform7, { args: [...], virtualFs: fs });
-const afterInform6 = await runWasi(inform6, { args: [...], virtualFs: afterInform7 });
-const afterInblorb = await runWasi(inblorb, { args: [...], virtualFs: afterInform6 });
-```
-
-See [`examples/high-level.mjs`](examples/high-level.mjs) and [`examples/low-level.mjs`](examples/low-level.mjs) for complete working examples.
-
-## How It Works
-
-### The WASI Approach
-
-All three tools are compiled as **pure WASI Preview 1** modules using `clang` with the `wasm32-wasip1` target. They have zero JavaScript dependencies and can run in any WASI-compliant runtime (wasmtime, wasmer, Node.js WASI, etc.).
-
-### The Function Pointer Fix
-
-Inform 7's method dispatch system stores function pointers as `void*` and casts them back at call sites. The `VOID_METHOD_TYPE` macro declared the function type as returning `void`, but 278 handler functions actually returned `int`. In native C this works (the return value is ignored), but WASM's `call_indirect` requires exact signature match including return type.
-
-The fix: changed all 278 handler functions from `void` to `int` across 86 `.w` source files, plus `return;` → `return 0;` in macro sections. These changes are in the `patches/` directory and are applied to the submodules during build.
-
-## Project Structure
-
-```
-inform7-wasm/
-├── build.sh                 # Reproducible WASM build script
-├── pixi.toml                # Pixi project configuration
-├── patches/
-│   ├── inform-wasi.patch    # Source patches for inform repo
-│   └── inweb-wasi.patch     # Source patches for inweb repo
-├── support/
-│   ├── wasi-stubs.c         # POSIX stubs (pthread, system, clock)
-│   └── custom-include/
-│       └── setjmp.h         # WASI-safe setjmp override
-├── submodules/
-│   ├── inform/              # ganelson/inform @ v10.1.2
-│   ├── inweb/               # ganelson/inweb @ v7.2.0
-│   └── intest/              # ganelson/intest @ v2.1.0
-├── packages/
-│   ├── inform7-wasm/        # npm package (TypeScript, Node.js + browser)
-│   └── web-demo/            # SvelteKit browser IDE (Monaco + Glulx interpreter)
-├── examples/
-│   ├── compile.mjs          # File-based compilation via Node.js WASI
-│   ├── compile-wasmtime.sh  # File-based compilation via wasmtime
-│   ├── high-level.mjs       # JS package high-level API demo
-│   ├── low-level.mjs        # JS package low-level API demo
-│   └── hello/               # Example "Hello World" story
-├── resources/               # (gitignored) Downloaded WASI SDK
-└── build/                   # (gitignored) Build output
-```
-
-## Dependencies
-
-### Build-time (via pixi / conda-forge)
-
-- `clang` ≥ 22.1.8 — C compiler with WASI target support
-- `lld` ≥ 22.1.8 — LLVM linker
-
-### Build-time (downloaded)
-
-- `wasi-sysroot-24.0.tar.gz` — WASI libc headers and libraries
-- `libclang_rt.builtins-wasm32-wasi-24.0.tar.gz` — compiler-rt builtins for wasm32
-
-Both are downloaded from the [wasi-sdk releases](https://github.com/WebAssembly/wasi-sdk/releases/tag/wasi-sdk-24) on first build and cached in `resources/`.
-
-### Runtime
-
-- Any WASI Preview 1 runtime (wasmtime, wasmer, Node.js 20+ with `--experimental-wasi-unstable-preview1`, or the browser via `@bjorn3/browser_wasi_shim`)
-
-## License
-
-This project is dedicated to the public domain under the [Unlicense](LICENSE).
 
 ## Further Reading
 
