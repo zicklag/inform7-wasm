@@ -6,6 +6,8 @@
 
 A build of the [Inform 7](https://ganelson.github.io/inform-website/) toolchain as WASI WASM modules.
 
+> **Project Status:** Experimental and AI assisted, but works as described in the documentation in my own testing.
+
 Lets you compile Inform 7 source text (`.ni`) into playable Glulx story files (`.gblorb`) on any platform with a WASI runtime — Node.js, Deno, wasmtime, or the browser.
 
 ## What's in this repo
